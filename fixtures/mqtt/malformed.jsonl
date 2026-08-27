@@ -1,0 +1,4 @@
+{"protocol":"mqtt","timestamp":"2026-08-27T14:00:00.000Z","topic":"sensors/temperature/device-01","payload":"{\"value\":23.4"}
+not-json
+{"protocol":"mqtt","timestamp":"2026-08-27T14:00:02.000Z","topic":"sensors/temperature/device-01","payload":"{\"value\":25.0,\"unit\":\"C\"}"}
+{"protocol":"unknown","timestamp":"2026-08-27T14:00:03.000Z","topic":"x","payload":"1"}

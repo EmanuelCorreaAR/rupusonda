@@ -1,0 +1,2 @@
+{"protocol":"mqtt","timestamp":"2026-08-27T14:00:00.000Z","topic":"sensors/humidity/device-01","payload":{"value":55.2,"unit":"%"}}
+{"protocol":"mqtt","timestamp":"2026-08-27T14:00:02.000Z","topic":"sensors/humidity/device-01","payload":"{\"value\":56.0,\"unit\":\"%\",\"metric\":\"humidity\"}"}
