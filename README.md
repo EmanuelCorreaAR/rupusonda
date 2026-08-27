@@ -86,6 +86,8 @@ Everything normalizes to **IoTEvent**:
 
 Event `id` is derived from content (deterministic). Same input + same configuration → same result.
 
+`deviceId` / `metric` are **optional** inferred semantics when evidence exists (payload fields or a clear `…/metric/deviceId` topic path). Arbitrary topics like `foo/bar` stay topic + value only — RupuSonda must swallow real MQTT without assuming a naming convention.
+
 
 ## Audit report
 
@@ -98,7 +100,7 @@ rupusonda inspect fixtures/mqtt/simple.jsonl --json
 ```json
 {
   "tool": "rupusonda",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "family": "rupu",
   "command": "inspect",
   "input": {
@@ -125,7 +127,8 @@ rupusonda inspect fixtures/mqtt/simple.jsonl --json
       "end": "2026-08-27T14:00:01.000Z"
     },
     "topics": {
-      "sensors/temperature/#": 2
+      "sensors/temperature/device-01": 1,
+      "sensors/temperature/device-02": 1
     },
     "payloads": {
       "json": 2,
@@ -140,6 +143,8 @@ rupusonda inspect fixtures/mqtt/simple.jsonl --json
   }
 }
 ```
+
+`result.topics` counts **concrete event topics**. Subscription filters (`sensors/#`) belong to capture/subscribe metadata, not to the event stream.
 
 
 ## Exit codes
@@ -174,7 +179,7 @@ npm run build
 
 ## Status
 
-**0.1.1** — `inspect` + `ingest` + `mqtt subscribe`; MQTT adapter; family-aligned CLI help and reports.
+**0.1.2** — concrete event topics in inspect; conservative MQTT inference; family-aligned CLI.
 
 **Next:** record/replay, schema inference, validation gates.
 

@@ -1,7 +1,7 @@
 import { deriveEventId } from "../../core/event/deriveEventId.js";
 import type { IoTEvent } from "../../core/event/IoTEvent.js";
 import type { ProtocolAdapter } from "../../core/protocol/ProtocolAdapter.js";
-import { decodeMqttPayload, parseMqttTopic } from "./MqttDecoder.js";
+import { decodeMqttPayload, inferMqttTopicSemantics } from "./MqttDecoder.js";
 import type { MqttMessage } from "./MqttMessage.js";
 
 function payloadFingerprint(payload: unknown): string {
@@ -26,10 +26,11 @@ export class MqttAdapter implements ProtocolAdapter<MqttMessage> {
 
   decode(input: MqttMessage): IoTEvent {
     const decoded = decodeMqttPayload(input.payload);
-    const topicInfo = parseMqttTopic(input.topic);
+    const inferred = inferMqttTopicSemantics(input.topic);
     const timestamp = input.timestamp ?? "1970-01-01T00:00:00.000Z";
 
-    const metric = decoded.metric ?? topicInfo.metric;
+    // Payload-declared metric wins; topic inference is best-effort only.
+    const metric = decoded.metric ?? inferred.metric;
     const id = deriveEventId([
       "mqtt",
       timestamp,
@@ -50,7 +51,7 @@ export class MqttAdapter implements ProtocolAdapter<MqttMessage> {
       timestamp,
       source: {
         protocol: "mqtt",
-        ...(topicInfo.deviceId !== undefined ? { deviceId: topicInfo.deviceId } : {}),
+        ...(inferred.deviceId !== undefined ? { deviceId: inferred.deviceId } : {}),
       },
       data: {
         topic: input.topic,

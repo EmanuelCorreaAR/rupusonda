@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { MqttAdapter } from "../src/protocols/mqtt/MqttAdapter.js";
-import { decodeMqttPayload, parseMqttTopic } from "../src/protocols/mqtt/MqttDecoder.js";
+import {
+  decodeMqttPayload,
+  inferMqttTopicSemantics,
+  subscriptionFilterFromTopic,
+} from "../src/protocols/mqtt/MqttDecoder.js";
 
 describe("MqttAdapter", () => {
   const adapter = new MqttAdapter();
 
-  it("parses JSON payload and extracts device/metric", () => {
+  it("parses JSON payload and extracts device/metric when topic evidence exists", () => {
     const event = adapter.decode({
       topic: "sensors/temperature/device-01",
       payload: '{"value":23.4,"unit":"C"}',
@@ -19,6 +23,19 @@ describe("MqttAdapter", () => {
     expect(event.data.value).toBe(23.4);
     expect(event.data.unit).toBe("C");
     expect(event.metadata["payloadKind"]).toBe("json");
+  });
+
+  it("does not force deviceId/metric on arbitrary topics", () => {
+    const event = adapter.decode({
+      topic: "foo/bar",
+      payload: { whatever: "payload" },
+      timestamp: "2026-08-27T14:00:00.000Z",
+    });
+
+    expect(event.source).toEqual({ protocol: "mqtt" });
+    expect(event.data.topic).toBe("foo/bar");
+    expect(event.data.metric).toBeUndefined();
+    expect(event.data.value).toEqual({ whatever: "payload" });
   });
 
   it("preserves text payload", () => {
@@ -44,11 +61,19 @@ describe("MqttAdapter", () => {
     expect(event.metadata["rawPreserved"]).toBe(true);
   });
 
-  it("extracts device id when possible", () => {
-    const parsed = parseMqttTopic("sensors/temperature/device-01");
+  it("infers device id only with enough topic evidence", () => {
+    const parsed = inferMqttTopicSemantics("sensors/temperature/device-01");
     expect(parsed.deviceId).toBe("device-01");
     expect(parsed.metric).toBe("temperature");
-    expect(parsed.pattern).toBe("sensors/temperature/#");
+
+    expect(inferMqttTopicSemantics("foo/bar")).toEqual({});
+    expect(inferMqttTopicSemantics("sensors/#")).toEqual({});
+  });
+
+  it("keeps subscription filters separate from event topics", () => {
+    expect(subscriptionFilterFromTopic("sensors/temperature/device-01")).toBe(
+      "sensors/temperature/#",
+    );
   });
 
   it("preserves original topic", () => {

@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.2] - 2026-08-27
+
+### Fixed
+- `inspect` counts concrete event topics (never subscription filters with `#`)
+- MQTT topic inference is best-effort only (`deviceId` / `metric` optional; arbitrary topics stay topic+value)
+
+### Added
+- `subscriptionFilterFromTopic()` helper — filters belong to capture/subscribe, not events
+
 ## [0.1.1] - 2026-08-27
 ### Changed
 - CLI help aligned with Rupu family (no family slogan in `--help` / npm description)

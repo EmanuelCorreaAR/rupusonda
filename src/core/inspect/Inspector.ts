@@ -53,19 +53,8 @@ function payloadKindFromEvent(event: IoTEvent): keyof PayloadKindCount {
   return "unknown";
 }
 
-function topicPattern(event: IoTEvent): string {
-  const topic = event.data.topic;
-  if (!topic) {
-    return "(none)";
-  }
-  const parts = topic.split("/").filter((p) => p.length > 0);
-  if (parts.length >= 3) {
-    return [...parts.slice(0, -1), "#"].join("/");
-  }
-  if (parts.length === 2) {
-    return `${parts[0]}/#`;
-  }
-  return topic;
+function eventTopic(event: IoTEvent): string {
+  return event.data.topic ?? "(none)";
 }
 
 export class Inspector {
@@ -92,8 +81,9 @@ export class Inspector {
       this.deviceIds.add(event.source.deviceId);
     }
 
-    const pattern = topicPattern(event);
-    this.topicCounts.set(pattern, (this.topicCounts.get(pattern) ?? 0) + 1);
+    // Count concrete event topics — never subscription filters (# / +).
+    const topic = eventTopic(event);
+    this.topicCounts.set(topic, (this.topicCounts.get(topic) ?? 0) + 1);
 
     this.payloads[payloadKindFromEvent(event)] += 1;
 

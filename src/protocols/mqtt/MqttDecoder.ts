@@ -122,32 +122,51 @@ export function decodeMqttPayload(payload: unknown): DecodedPayload {
   return { value: payload, kind: "unknown", rawPreserved: true };
 }
 
-/**
- * Topic heuristic: sensors/temperature/device-01
- * → metric = temperature, deviceId = device-01
- */
-export function parseMqttTopic(topic: string): {
+export type InferredTopicSemantics = {
   deviceId?: string;
   metric?: string;
-  pattern: string;
-} {
+};
+
+/**
+ * Best-effort topic semantics. Never required.
+ *
+ * Only when the path looks like `…/<metric>/<deviceId>` (≥3 segments).
+ * Arbitrary topics (e.g. `foo/bar`) stay as topic-only — no forced metric/deviceId.
+ *
+ * `#` / `+` filters belong to subscriptions, not to events — see
+ * {@link subscriptionFilterFromTopic} for that concern.
+ */
+export function inferMqttTopicSemantics(topic: string): InferredTopicSemantics {
   const parts = topic.split("/").filter((p) => p.length > 0);
-  if (parts.length >= 3) {
-    const deviceId = parts[parts.length - 1];
-    const metric = parts[parts.length - 2];
-    const pattern = [...parts.slice(0, -1), "#"].join("/");
-    return {
-      ...(deviceId !== undefined ? { deviceId } : {}),
-      ...(metric !== undefined ? { metric } : {}),
-      pattern,
-    };
+  // Wildcards are subscription filters, not event topics.
+  if (parts.some((p) => p === "#" || p === "+")) {
+    return {};
   }
-  if (parts.length === 2) {
-    const metric = parts[1];
-    return {
-      ...(metric !== undefined ? { metric } : {}),
-      pattern: `${parts[0]}/#`,
-    };
+  if (parts.length < 3) {
+    return {};
   }
-  return { pattern: topic || "#" };
+  const deviceId = parts[parts.length - 1];
+  const metric = parts[parts.length - 2];
+  return {
+    ...(deviceId !== undefined ? { deviceId } : {}),
+    ...(metric !== undefined ? { metric } : {}),
+  };
+}
+
+/** @deprecated Use {@link inferMqttTopicSemantics} — kept for call-site clarity in tests. */
+export function parseMqttTopic(topic: string): InferredTopicSemantics {
+  return inferMqttTopicSemantics(topic);
+}
+
+/**
+ * Derive a subscription-style filter from a concrete event topic
+ * (e.g. sensors/temperature/device-01 → sensors/temperature/#).
+ * This is for capture/subscribe metadata — not for inspect event counts.
+ */
+export function subscriptionFilterFromTopic(topic: string): string {
+  const parts = topic.split("/").filter((p) => p.length > 0);
+  if (parts.length >= 2) {
+    return [...parts.slice(0, -1), "#"].join("/");
+  }
+  return topic || "#";
 }

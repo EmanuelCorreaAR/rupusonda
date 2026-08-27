@@ -19,8 +19,12 @@ describe("inspect", () => {
     expect(audit.result.protocols.mqtt).toBe(5);
     expect(audit.result.devices).toBe(3);
     expect(audit.result.deviceIds).toEqual(["device-01", "device-02", "device-03"]);
-    expect(audit.result.topics["sensors/temperature/#"]).toBe(3);
-    expect(audit.result.topics["sensors/humidity/#"]).toBe(2);
+    expect(audit.result.topics["sensors/temperature/device-01"]).toBe(1);
+    expect(audit.result.topics["sensors/temperature/device-02"]).toBe(1);
+    expect(audit.result.topics["sensors/temperature/device-03"]).toBe(1);
+    expect(audit.result.topics["sensors/humidity/device-01"]).toBe(1);
+    expect(audit.result.topics["sensors/humidity/device-03"]).toBe(1);
+    expect(audit.result.topics["sensors/temperature/#"]).toBeUndefined();
   });
 
   it("produces deterministic JSON", async () => {
