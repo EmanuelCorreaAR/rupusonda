@@ -1,0 +1,3 @@
+{"protocol":"modbus","timestamp":"2026-08-27T14:00:00.000Z","slaveId":1,"registerType":"holding","address":40001,"value":100}
+{"protocol":"modbus","timestamp":"2026-08-27T14:00:01.000Z","slaveId":2,"registerType":"holding","address":40001,"value":200}
+{"protocol":"mqtt","timestamp":"2026-08-27T14:00:02.000Z","topic":"sensors/temperature/device-01","payload":"{\"value\":23.4,\"unit\":\"C\"}"}

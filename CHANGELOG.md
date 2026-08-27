@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.0] - 2026-08-27
+
+### Added
+- Modbus protocol adapter (`decodeModbusMessage`, JSONL ingest via `protocol: "modbus"`)
+- Fixtures `fixtures/modbus/simple.jsonl`, `fixtures/modbus/mixed-protocol.jsonl`
+
+### Changed
+- `inspect` / `ingest` accept Modbus records alongside MQTT in the same capture
+
 ## [0.2.1] - 2026-08-27
 ### Changed
 - Core rewritten as pure TypeScript FP: `Result<T,E>`, immutable registry, `inspectEvents` fold, `normalizeRecord` / `decodeMqttMessage` without side effects

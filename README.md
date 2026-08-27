@@ -67,10 +67,10 @@ One line per raw protocol record. Streaming — the file is not loaded as one bl
 
 ```jsonl
 {"protocol":"mqtt","timestamp":"2026-08-27T14:00:00.000Z","topic":"sensors/temperature/device-01","payload":"{\"value\":23.4,\"unit\":\"C\"}"}
-{"protocol":"mqtt","timestamp":"2026-08-27T14:00:01.000Z","topic":"sensors/temperature/device-02","payload":"{\"value\":24.1,\"unit\":\"C\"}"}
+{"protocol":"modbus","timestamp":"2026-08-27T14:00:00.000Z","slaveId":1,"registerType":"holding","address":40001,"value":235,"unit":"0.1C"}
 ```
 
-Payloads may be JSON, text, number, or binary. When semantics cannot be inferred, the original payload is preserved.
+MQTT uses `topic` + `payload`. Modbus uses `address` (or `register`) + `value`; `deviceId` / `slaveId` / `registerType` are optional.
 
 
 ## Canonical model
@@ -193,7 +193,7 @@ npm run build
 
 ## Status
 
-**0.2.1** — pure FP core (`Result`, immutable registry, `inspectEvents`); record/replay; family-aligned CLI.
+**0.3.0** — Modbus adapter + record/replay; pure FP core; family-aligned CLI.
 
 **Next:** record/replay, schema inference, validation gates.
 

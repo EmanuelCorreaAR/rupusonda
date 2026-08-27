@@ -1,0 +1,3 @@
+{"protocol":"modbus","timestamp":"2026-08-27T14:00:00.000Z","slaveId":1,"registerType":"holding","address":40001,"value":235,"unit":"0.1C"}
+{"protocol":"modbus","timestamp":"2026-08-27T14:00:01.000Z","deviceId":"plc-01","registerType":"input","address":30002,"value":42.5,"unit":"bar","metric":"pressure"}
+{"protocol":"modbus","timestamp":"2026-08-27T14:00:02.000Z","address":1,"value":true,"registerType":"coil"}

@@ -20,6 +20,14 @@ export {
   subscriptionFilterFromTopic,
 } from "./protocols/mqtt/MqttDecoder.js";
 export type { InferredTopicSemantics } from "./protocols/mqtt/MqttDecoder.js";
+export { modbusAdapter, decodeModbusMessage } from "./protocols/modbus/ModbusAdapter.js";
+export type { ModbusMessage, ModbusRegisterType } from "./protocols/modbus/ModbusMessage.js";
+export {
+  decodeModbusValue,
+  formatModbusAddressPath,
+  resolveModbusDeviceId,
+  isModbusRegisterType,
+} from "./protocols/modbus/ModbusDecoder.js";
 export { encodeMqttReplayPayload, requireReplayTopic } from "./protocols/mqtt/MqttReplayCodec.js";
 export { parseIoTEvent } from "./core/event/parseIoTEvent.js";
 export { readIoTEventJsonl, collectIoTEventJsonl } from "./core/event/readIoTEventJsonl.js";

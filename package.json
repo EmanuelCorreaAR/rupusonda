@@ -1,6 +1,6 @@
 {
   "name": "rupu-sonda",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Local-first CLI to probe, normalize, and inspect IoT protocol data.",
   "type": "module",
   "bin": {

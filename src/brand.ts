@@ -1,5 +1,5 @@
 export const TOOL = "rupusonda";
-export const VERSION = "0.2.1";
+export const VERSION = "0.3.0";
 export const TAGLINE = "Probe the signal. Understand the data.";
 export const FAMILY = "rupu";
 
