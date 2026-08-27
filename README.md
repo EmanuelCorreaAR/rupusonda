@@ -98,7 +98,7 @@ rupusonda inspect fixtures/mqtt/simple.jsonl --json
 ```json
 {
   "tool": "rupusonda",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "family": "rupu",
   "command": "inspect",
   "input": {
@@ -174,7 +174,7 @@ npm run build
 
 ## Status
 
-**0.1.0** — `inspect` + `ingest` + `mqtt subscribe`; MQTT adapter; deterministic audit JSON.
+**0.1.1** — `inspect` + `ingest` + `mqtt subscribe`; MQTT adapter; family-aligned CLI help and reports.
 
 **Next:** record/replay, schema inference, validation gates.
 

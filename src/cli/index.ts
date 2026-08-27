@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import { TAGLINE, TOOL, VERSION } from "../brand.js";
+import { TOOL, VERSION } from "../brand.js";
 import { EXIT_ERROR, toRupuSondaError } from "../core/errors.js";
 import { runInspect } from "./commands/inspect.js";
 import { runIngest } from "./commands/ingest.js";
@@ -14,15 +14,23 @@ async function main(): Promise<void> {
   program
     .name(TOOL)
     .description(
-      `Local-first CLI for probing and inspecting IoT protocol data.\n\n${TAGLINE}\nPart of the Rupu family.`,
+      [
+        "Local-first CLI for probing and inspecting IoT protocol data.",
+        "",
+        "See also:",
+        "  rupusonda inspect --help",
+        "  rupusonda ingest --help",
+        "  rupusonda mqtt --help",
+      ].join("\n"),
     )
-    .version(VERSION)
+    .version(VERSION, "-V, --version", "Show version and exit")
+    .helpOption("-h, --help", "Show this message and exit")
     .showHelpAfterError()
     .showSuggestionAfterError();
 
   program
     .command("inspect")
-    .description("Inspect a JSONL capture and summarize protocols, devices, and payloads")
+    .description("Inspect a JSONL capture (protocols, devices, topics, payloads)")
     .argument("<path>", "JSONL input file")
     .option("--json", "Emit deterministic JSON audit envelope", false)
     .action(async (path: string, opts: { json: boolean }) => {
@@ -50,18 +58,20 @@ async function main(): Promise<void> {
         process.stdout.write(`${JSON.stringify(audit, null, 2)}\n`);
       } else if (opts.output) {
         process.stderr.write(
-          `Wrote ${audit.result.written} events to ${opts.output}` +
+          `Wrote ${audit.result.written} events to ${pc.bold(opts.output)}` +
             (audit.result.issues ? ` (${audit.result.issues} issues)` : "") +
             "\n",
         );
       }
     });
 
-  const mqtt = program.command("mqtt").description("MQTT protocol utilities");
+  const mqtt = program
+    .command("mqtt")
+    .description("MQTT protocol utilities (first adapter — not the product)");
 
   mqtt
     .command("subscribe")
-    .description("Subscribe to an MQTT broker and normalize messages to IoTEvent")
+    .description("Subscribe to a broker and normalize messages to IoTEvent")
     .requiredOption("--url <url>", "MQTT broker URL (e.g. mqtt://localhost:1883)")
     .requiredOption("--topic <topic>", "Topic filter (e.g. sensors/#)")
     .option("-o, --output <path>", "Append IoTEvent JSONL to file")
@@ -78,7 +88,7 @@ async function main(): Promise<void> {
         jsonEvents: boolean;
       }) => {
         renderBanner();
-        process.stderr.write(`Subscribing ${opts.topic} @ ${opts.url}\n`);
+        process.stderr.write(`\nSubscribing ${pc.bold(opts.topic)} @ ${opts.url}\n\n`);
 
         const summary = await runMqttSubscribe(
           {
@@ -98,9 +108,15 @@ async function main(): Promise<void> {
           },
         );
 
-        process.stderr.write(`Received ${summary.received} messages\n`);
+        process.stderr.write(`\nReceived ${summary.received} messages\n`);
       },
     );
+
+  // Match Rupu family: no args → help (not an opaque error).
+  if (process.argv.slice(2).length === 0) {
+    program.outputHelp();
+    return;
+  }
 
   await program.parseAsync(process.argv);
 }
