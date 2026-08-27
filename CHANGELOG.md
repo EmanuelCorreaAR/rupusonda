@@ -1,7 +1,6 @@
 # Changelog
 
 ## [0.1.0] - 2026-08-27
-
 ### Added
 - CLI (`rupusonda`): `inspect`, `ingest`, `mqtt subscribe`
 - Canonical `IoTEvent` model and protocol-independent core
