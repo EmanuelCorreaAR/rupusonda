@@ -1,20 +1,20 @@
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
-import { RupuSondaError } from "../errors.js";
 import type { IoTEvent } from "./IoTEvent.js";
 import { parseIoTEvent } from "./parseIoTEvent.js";
 
-export type IoTEventReadIssue = {
+export type IoTEventReadIssue = Readonly<{
   lineNumber: number;
   message: string;
-};
+}>;
 
 /**
- * Stream canonical IoTEvent records from a JSONL capture (one event per line).
+ * Stream canonical IoTEvent records from a JSONL capture.
+ * I/O at the edges; parse steps are pure Results.
  */
 export async function* readIoTEventJsonl(
   path: string,
-): AsyncGenerator<IoTEvent, IoTEventReadIssue[]> {
+): AsyncGenerator<IoTEvent, readonly IoTEventReadIssue[]> {
   const issues: IoTEventReadIssue[] = [];
   const stream = createReadStream(path, { encoding: "utf8" });
   const rl = createInterface({ input: stream, crlfDelay: Infinity });
@@ -31,25 +31,24 @@ export async function* readIoTEventJsonl(
     try {
       parsed = JSON.parse(trimmed);
     } catch {
-      issues.push({ lineNumber, message: "invalid JSON" });
+      issues.push(Object.freeze({ lineNumber, message: "invalid JSON" }));
       continue;
     }
 
-    try {
-      yield parseIoTEvent(parsed, lineNumber);
-    } catch (error) {
-      const message =
-        error instanceof RupuSondaError ? error.message : "invalid IoTEvent";
-      issues.push({ lineNumber, message });
+    const event = parseIoTEvent(parsed, lineNumber);
+    if (event.ok) {
+      yield event.value;
+    } else {
+      issues.push(Object.freeze({ lineNumber, message: event.error.message }));
     }
   }
 
-  return issues;
+  return Object.freeze(issues);
 }
 
-export async function collectIoTEventJsonl(
+export const collectIoTEventJsonl = async (
   path: string,
-): Promise<{ events: IoTEvent[]; issues: IoTEventReadIssue[] }> {
+): Promise<Readonly<{ events: readonly IoTEvent[]; issues: readonly IoTEventReadIssue[] }>> => {
   const events: IoTEvent[] = [];
   const generator = readIoTEventJsonl(path);
   let next = await generator.next();
@@ -57,5 +56,5 @@ export async function collectIoTEventJsonl(
     events.push(next.value);
     next = await generator.next();
   }
-  return { events, issues: next.value };
-}
+  return Object.freeze({ events: Object.freeze(events), issues: next.value });
+};

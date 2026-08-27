@@ -57,7 +57,7 @@ export type ReplayPlanItem = {
   event: IoTEvent;
 };
 
-/** Build an in-order publish plan from a capture (streaming). */
+/** Build an in-order publish plan from a capture (streaming). Pure planning aside from file I/O. */
 export async function planMqttReplay(
   path: string,
   maxMessages?: number,
@@ -70,29 +70,32 @@ export async function planMqttReplay(
   let next = await generator.next();
   while (!next.done) {
     const event = next.value;
-    try {
-      if (event.source.protocol !== "mqtt") {
-        skipped += 1;
-        next = await generator.next();
-        continue;
-      }
-      const topic = requireReplayTopic(event);
-      const payload = encodeMqttReplayPayload(event);
-      plan.push({ topic, payload, event });
-      if (maxMessages !== undefined && plan.length >= maxMessages) {
-        // Drain remaining without adding (count as unread — stop planning).
-        break;
-      }
-    } catch {
+    if (event.source.protocol !== "mqtt") {
+      skipped += 1;
+      next = await generator.next();
+      continue;
+    }
+
+    const topic = requireReplayTopic(event);
+    if (!topic.ok) {
       issues += 1;
+      next = await generator.next();
+      continue;
+    }
+
+    plan.push({
+      topic: topic.value,
+      payload: encodeMqttReplayPayload(event),
+      event,
+    });
+
+    if (maxMessages !== undefined && plan.length >= maxMessages) {
+      break;
     }
     next = await generator.next();
   }
   if (next.done) {
     issues += next.value.length;
-  } else {
-    // Generator not finished — close by reading remaining issues only if needed.
-    // For maxMessages stop we intentionally leave the rest unread.
   }
 
   return { plan, issues, skipped };

@@ -1,16 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { MqttAdapter } from "../src/protocols/mqtt/MqttAdapter.js";
+import { decodeMqttMessage } from "../src/protocols/mqtt/MqttAdapter.js";
 import {
   decodeMqttPayload,
   inferMqttTopicSemantics,
   subscriptionFilterFromTopic,
 } from "../src/protocols/mqtt/MqttDecoder.js";
 
-describe("MqttAdapter", () => {
-  const adapter = new MqttAdapter();
-
+describe("decodeMqttMessage", () => {
   it("parses JSON payload and extracts device/metric when topic evidence exists", () => {
-    const event = adapter.decode({
+    const event = decodeMqttMessage({
       topic: "sensors/temperature/device-01",
       payload: '{"value":23.4,"unit":"C"}',
       timestamp: "2026-08-27T14:00:00.000Z",
@@ -26,7 +24,7 @@ describe("MqttAdapter", () => {
   });
 
   it("does not force deviceId/metric on arbitrary topics", () => {
-    const event = adapter.decode({
+    const event = decodeMqttMessage({
       topic: "foo/bar",
       payload: { whatever: "payload" },
       timestamp: "2026-08-27T14:00:00.000Z",
@@ -39,7 +37,7 @@ describe("MqttAdapter", () => {
   });
 
   it("preserves text payload", () => {
-    const event = adapter.decode({
+    const event = decodeMqttMessage({
       topic: "sensors/status/device-01",
       payload: "online",
       timestamp: "2026-08-27T14:00:00.000Z",
@@ -50,7 +48,7 @@ describe("MqttAdapter", () => {
   });
 
   it("handles malformed JSON payload as text", () => {
-    const event = adapter.decode({
+    const event = decodeMqttMessage({
       topic: "sensors/temperature/device-01",
       payload: '{"value":23.4',
       timestamp: "2026-08-27T14:00:00.000Z",
@@ -78,7 +76,7 @@ describe("MqttAdapter", () => {
 
   it("preserves original topic", () => {
     const topic = "factory/line-1/sensors/temp/device-99";
-    const event = adapter.decode({
+    const event = decodeMqttMessage({
       topic,
       payload: 42,
       timestamp: "2026-08-27T14:00:00.000Z",
@@ -92,8 +90,8 @@ describe("MqttAdapter", () => {
       payload: '{"value":23.4,"unit":"C"}',
       timestamp: "2026-08-27T14:00:00.000Z",
     };
-    const a = adapter.decode(input);
-    const b = adapter.decode(input);
+    const a = decodeMqttMessage(input);
+    const b = decodeMqttMessage(input);
     expect(a).toEqual(b);
     expect(a.id).toBe(b.id);
   });

@@ -1,26 +1,45 @@
 import type { ProtocolAdapter } from "./ProtocolAdapter.js";
 import type { Protocol } from "./Protocol.js";
+import { err, ok, type Result } from "../result.js";
+import { RupuSondaError } from "../errors.js";
 
-export class ProtocolRegistry {
-  private readonly adapters = new Map<Protocol, ProtocolAdapter<unknown>>();
+/**
+ * Immutable protocol adapter table.
+ * Construct once; never mutate — use {@link withAdapter} to extend.
+ */
+export type ProtocolRegistry = Readonly<{
+  readonly adapters: ReadonlyMap<Protocol, ProtocolAdapter<unknown>>;
+}>;
 
-  register<TInput>(adapter: ProtocolAdapter<TInput>): void {
-    this.adapters.set(adapter.protocol, adapter as ProtocolAdapter<unknown>);
+export const emptyRegistry = (): ProtocolRegistry =>
+  Object.freeze({ adapters: new Map() });
+
+export const withAdapter = <TInput>(
+  registry: ProtocolRegistry,
+  adapter: ProtocolAdapter<TInput>,
+): ProtocolRegistry => {
+  const adapters = new Map(registry.adapters);
+  adapters.set(adapter.protocol, adapter as ProtocolAdapter<unknown>);
+  return Object.freeze({ adapters });
+};
+
+export const getAdapter = (
+  registry: ProtocolRegistry,
+  protocol: Protocol,
+): ProtocolAdapter<unknown> | undefined => registry.adapters.get(protocol);
+
+export const requireAdapter = (
+  registry: ProtocolRegistry,
+  protocol: Protocol,
+): Result<ProtocolAdapter<unknown>, RupuSondaError> => {
+  const adapter = getAdapter(registry, protocol);
+  if (!adapter) {
+    return err(
+      new RupuSondaError("protocol", `No protocol adapter registered for '${protocol}'`),
+    );
   }
+  return ok(adapter);
+};
 
-  get(protocol: Protocol): ProtocolAdapter<unknown> | undefined {
-    return this.adapters.get(protocol);
-  }
-
-  require(protocol: Protocol): ProtocolAdapter<unknown> {
-    const adapter = this.get(protocol);
-    if (!adapter) {
-      throw new Error(`No protocol adapter registered for '${protocol}'`);
-    }
-    return adapter;
-  }
-
-  list(): Protocol[] {
-    return [...this.adapters.keys()].sort();
-  }
-}
+export const listProtocols = (registry: ProtocolRegistry): readonly Protocol[] =>
+  Object.freeze([...registry.adapters.keys()].sort());

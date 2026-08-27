@@ -1,7 +1,9 @@
 import type { IoTEvent } from "../event/IoTEvent.js";
 import type { Protocol } from "../protocol/Protocol.js";
 
-export type PayloadKindCount = {
+export type PayloadKind = keyof PayloadKindCount;
+
+export type PayloadKindCount = Readonly<{
   json: number;
   text: number;
   number: number;
@@ -9,35 +11,23 @@ export type PayloadKindCount = {
   null: number;
   binary: number;
   unknown: number;
-};
+}>;
 
-export type InspectResult = {
+export type InspectResult = Readonly<{
   events: number;
-  protocols: Partial<Record<Protocol, number>>;
+  protocols: Readonly<Partial<Record<Protocol, number>>>;
   devices: number;
-  deviceIds: string[];
-  timeRange: {
+  deviceIds: readonly string[];
+  timeRange: Readonly<{
     start: string | null;
     end: string | null;
-  };
-  topics: Record<string, number>;
+  }>;
+  topics: Readonly<Record<string, number>>;
   payloads: PayloadKindCount;
   issues: number;
-};
+}>;
 
-function emptyPayloads(): PayloadKindCount {
-  return {
-    json: 0,
-    text: 0,
-    number: 0,
-    boolean: 0,
-    null: 0,
-    binary: 0,
-    unknown: 0,
-  };
-}
-
-function payloadKindFromEvent(event: IoTEvent): keyof PayloadKindCount {
+const payloadKindFromEvent = (event: IoTEvent): PayloadKind => {
   const kind = event.metadata["payloadKind"];
   if (
     kind === "json" ||
@@ -51,81 +41,79 @@ function payloadKindFromEvent(event: IoTEvent): keyof PayloadKindCount {
     return kind;
   }
   return "unknown";
-}
+};
 
-function eventTopic(event: IoTEvent): string {
-  return event.data.topic ?? "(none)";
-}
+const eventTopic = (event: IoTEvent): string => event.data.topic ?? "(none)";
 
-export class Inspector {
-  private events = 0;
-  private issues = 0;
-  private readonly protocolCounts = new Map<Protocol, number>();
-  private readonly deviceIds = new Set<string>();
-  private readonly topicCounts = new Map<string, number>();
-  private readonly payloads = emptyPayloads();
-  private start: string | null = null;
-  private end: string | null = null;
-
-  addIssue(): void {
-    this.issues += 1;
+const sortedCountRecord = <K extends string>(
+  map: Map<K, number>,
+): Readonly<Partial<Record<K, number>>> => {
+  const out: Partial<Record<K, number>> = {};
+  for (const key of [...map.keys()].sort()) {
+    const count = map.get(key);
+    if (count !== undefined) {
+      out[key] = count;
+    }
   }
+  return out;
+};
 
-  add(event: IoTEvent): void {
-    this.events += 1;
+/**
+ * Pure inspection fold.
+ * Referentially transparent: same inputs ⇒ same InspectResult.
+ * Local accumulation only — no shared mutable state, no I/O, no clocks.
+ */
+export const inspectEvents = (
+  events: readonly IoTEvent[],
+  issueCount = 0,
+): InspectResult => {
+  const protocols = new Map<Protocol, number>();
+  const deviceIds = new Set<string>();
+  const topics = new Map<string, number>();
+  const payloads: {
+    -readonly [K in PayloadKind]: number;
+  } = {
+    json: 0,
+    text: 0,
+    number: 0,
+    boolean: 0,
+    null: 0,
+    binary: 0,
+    unknown: 0,
+  };
 
-    const protocol = event.source.protocol;
-    this.protocolCounts.set(protocol, (this.protocolCounts.get(protocol) ?? 0) + 1);
+  let start: string | null = null;
+  let end: string | null = null;
+
+  for (const event of events) {
+    protocols.set(event.source.protocol, (protocols.get(event.source.protocol) ?? 0) + 1);
 
     if (event.source.deviceId) {
-      this.deviceIds.add(event.source.deviceId);
+      deviceIds.add(event.source.deviceId);
     }
 
-    // Count concrete event topics — never subscription filters (# / +).
     const topic = eventTopic(event);
-    this.topicCounts.set(topic, (this.topicCounts.get(topic) ?? 0) + 1);
+    topics.set(topic, (topics.get(topic) ?? 0) + 1);
+    payloads[payloadKindFromEvent(event)] += 1;
 
-    this.payloads[payloadKindFromEvent(event)] += 1;
-
-    if (this.start === null || event.timestamp < this.start) {
-      this.start = event.timestamp;
+    if (start === null || event.timestamp < start) {
+      start = event.timestamp;
     }
-    if (this.end === null || event.timestamp > this.end) {
-      this.end = event.timestamp;
+    if (end === null || event.timestamp > end) {
+      end = event.timestamp;
     }
   }
 
-  result(): InspectResult {
-    const protocols: Partial<Record<Protocol, number>> = {};
-    for (const protocol of [...this.protocolCounts.keys()].sort()) {
-      const count = this.protocolCounts.get(protocol);
-      if (count !== undefined) {
-        protocols[protocol] = count;
-      }
-    }
+  const sortedDevices = Object.freeze([...deviceIds].sort()) as readonly string[];
 
-    const topics: Record<string, number> = {};
-    for (const topic of [...this.topicCounts.keys()].sort()) {
-      const count = this.topicCounts.get(topic);
-      if (count !== undefined) {
-        topics[topic] = count;
-      }
-    }
-
-    const deviceIds = [...this.deviceIds].sort();
-
-    return {
-      events: this.events,
-      protocols,
-      devices: deviceIds.length,
-      deviceIds,
-      timeRange: {
-        start: this.start,
-        end: this.end,
-      },
-      topics,
-      payloads: { ...this.payloads },
-      issues: this.issues,
-    };
-  }
-}
+  return Object.freeze({
+    events: events.length,
+    protocols: sortedCountRecord(protocols),
+    devices: sortedDevices.length,
+    deviceIds: sortedDevices,
+    timeRange: Object.freeze({ start, end }),
+    topics: sortedCountRecord(topics) as Readonly<Record<string, number>>,
+    payloads: Object.freeze({ ...payloads }),
+    issues: issueCount,
+  });
+};

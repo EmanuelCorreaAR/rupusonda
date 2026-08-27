@@ -1,8 +1,6 @@
-import { ProtocolRegistry } from "../core/protocol/ProtocolRegistry.js";
-import { MqttAdapter } from "../protocols/mqtt/MqttAdapter.js";
+import { withAdapter, emptyRegistry, type ProtocolRegistry } from "./protocol/ProtocolRegistry.js";
+import { mqttAdapter } from "../protocols/mqtt/MqttAdapter.js";
 
-export function createDefaultRegistry(): ProtocolRegistry {
-  const registry = new ProtocolRegistry();
-  registry.register(new MqttAdapter());
-  return registry;
-}
+/** Frozen default registry — built once, shared safely. */
+export const createDefaultRegistry = (): ProtocolRegistry =>
+  withAdapter(emptyRegistry(), mqttAdapter);

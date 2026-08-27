@@ -8,7 +8,7 @@ import {
   requireReplayTopic,
 } from "../src/protocols/mqtt/MqttReplayCodec.js";
 import { planMqttReplay, runMqttReplay } from "../src/cli/commands/mqtt-replay.js";
-import { MqttAdapter } from "../src/protocols/mqtt/MqttAdapter.js";
+import { decodeMqttMessage } from "../src/protocols/mqtt/MqttAdapter.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fixtures = path.join(root, "fixtures", "mqtt");
@@ -22,40 +22,47 @@ describe("parseIoTEvent", () => {
       data: { topic: "foo/bar", value: { whatever: "payload" } },
       metadata: {},
     });
-    expect(event.source.deviceId).toBeUndefined();
-    expect(event.data.metric).toBeUndefined();
-    expect(event.data.topic).toBe("foo/bar");
+    expect(event.ok).toBe(true);
+    if (event.ok) {
+      expect(event.value.source.deviceId).toBeUndefined();
+      expect(event.value.data.metric).toBeUndefined();
+      expect(event.value.data.topic).toBe("foo/bar");
+    }
   });
 
   it("rejects missing value", () => {
-    expect(() =>
-      parseIoTEvent({
-        id: "abc",
-        timestamp: "2026-08-27T14:00:00.000Z",
-        source: { protocol: "mqtt" },
-        data: { topic: "foo/bar" },
-        metadata: {},
-      }),
-    ).toThrow(/data.value/);
+    const result = parseIoTEvent({
+      id: "abc",
+      timestamp: "2026-08-27T14:00:00.000Z",
+      source: { protocol: "mqtt" },
+      data: { topic: "foo/bar" },
+      metadata: {},
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.message).toMatch(/data.value/);
+    }
   });
 });
 
 describe("MqttReplayCodec", () => {
-  const adapter = new MqttAdapter();
-
   it("round-trips JSON sensor payloads", () => {
-    const event = adapter.decode({
+    const event = decodeMqttMessage({
       topic: "sensors/temperature/device-01",
       payload: '{"value":23.4,"unit":"C"}',
       timestamp: "2026-08-27T14:00:00.000Z",
     });
     const encoded = encodeMqttReplayPayload(event);
     expect(JSON.parse(String(encoded))).toEqual({ value: 23.4, unit: "C" });
-    expect(requireReplayTopic(event)).toBe("sensors/temperature/device-01");
+    const topic = requireReplayTopic(event);
+    expect(topic.ok).toBe(true);
+    if (topic.ok) {
+      expect(topic.value).toBe("sensors/temperature/device-01");
+    }
   });
 
   it("preserves arbitrary object payloads", () => {
-    const event = adapter.decode({
+    const event = decodeMqttMessage({
       topic: "foo/bar",
       payload: { whatever: "payload" },
       timestamp: "2026-08-27T14:00:00.000Z",
@@ -66,15 +73,17 @@ describe("MqttReplayCodec", () => {
   });
 
   it("rejects subscription-filter topics", () => {
-    expect(() =>
-      requireReplayTopic({
-        id: "x",
-        timestamp: "2026-08-27T14:00:00.000Z",
-        source: { protocol: "mqtt" },
-        data: { topic: "sensors/#", value: 1 },
-        metadata: {},
-      }),
-    ).toThrow(/subscription filter/);
+    const topic = requireReplayTopic({
+      id: "x",
+      timestamp: "2026-08-27T14:00:00.000Z",
+      source: { protocol: "mqtt" },
+      data: { topic: "sensors/#", value: 1 },
+      metadata: {},
+    });
+    expect(topic.ok).toBe(false);
+    if (!topic.ok) {
+      expect(topic.error.message).toMatch(/subscription filter/);
+    }
   });
 });
 

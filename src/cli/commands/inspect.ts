@@ -1,17 +1,16 @@
 import { access } from "node:fs/promises";
 import { createDefaultRegistry } from "../../core/createRegistry.js";
 import { collectJsonl } from "../../core/ingest/Ingestor.js";
-import { Inspector } from "../../core/inspect/Inspector.js";
-import { Normalizer } from "../../core/normalize/Normalizer.js";
-import { buildAudit } from "../../core/audit.js";
+import { inspectEvents, type InspectResult } from "../../core/inspect/Inspector.js";
+import { normalizeRecord } from "../../core/normalize/Normalizer.js";
+import { buildAudit, type AuditEnvelope } from "../../core/audit.js";
 import { RupuSondaError } from "../../core/errors.js";
-import type { InspectResult } from "../../core/inspect/Inspector.js";
-import type { AuditEnvelope } from "../../core/audit.js";
+import type { IoTEvent } from "../../core/event/IoTEvent.js";
 
-export type InspectOptions = {
+export type InspectOptions = Readonly<{
   path: string;
   json: boolean;
-};
+}>;
 
 export type InspectOutput = AuditEnvelope<InspectResult>;
 
@@ -23,33 +22,28 @@ async function assertReadable(path: string): Promise<void> {
   }
 }
 
+/**
+ * I/O boundary: read JSONL, then pure fold (normalize + inspect).
+ */
 export async function runInspect(options: InspectOptions): Promise<InspectOutput> {
   await assertReadable(options.path);
 
   const registry = createDefaultRegistry();
-  const normalizer = new Normalizer(registry);
-  const inspector = new Inspector();
-
   const { records, issues } = await collectJsonl(options.path);
-  for (let i = 0; i < issues.length; i += 1) {
-    inspector.addIssue();
-  }
 
-  for (const record of records) {
-    try {
-      const event = normalizer.normalize(record);
-      inspector.add(event);
-    } catch (error) {
-      inspector.addIssue();
-      if (error instanceof RupuSondaError) {
-        // Keep going for inspect; issues are counted.
-        continue;
-      }
-      throw error;
+  const normalized = records.map((record) => normalizeRecord(registry, record));
+  const events: IoTEvent[] = [];
+  let normalizeIssues = 0;
+
+  for (const result of normalized) {
+    if (result.ok) {
+      events.push(result.value);
+    } else {
+      normalizeIssues += 1;
     }
   }
 
-  const result = inspector.result();
+  const result = inspectEvents(events, issues.length + normalizeIssues);
 
   return buildAudit(
     "inspect",

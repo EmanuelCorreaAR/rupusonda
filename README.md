@@ -193,7 +193,7 @@ npm run build
 
 ## Status
 
-**0.2.0** — record/replay (`mqtt subscribe` + `mqtt replay`); concrete event topics; conservative MQTT inference.
+**0.2.1** — pure FP core (`Result`, immutable registry, `inspectEvents`); record/replay; family-aligned CLI.
 
 **Next:** record/replay, schema inference, validation gates.
 

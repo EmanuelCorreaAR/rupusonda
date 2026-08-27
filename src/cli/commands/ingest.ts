@@ -3,24 +3,23 @@ import { access } from "node:fs/promises";
 import { finished } from "node:stream/promises";
 import type { Writable } from "node:stream";
 import { createDefaultRegistry } from "../../core/createRegistry.js";
-import { buildAudit } from "../../core/audit.js";
+import { buildAudit, type AuditEnvelope } from "../../core/audit.js";
 import { RupuSondaError } from "../../core/errors.js";
 import { ingestJsonl } from "../../core/ingest/Ingestor.js";
-import { Normalizer } from "../../core/normalize/Normalizer.js";
-import type { AuditEnvelope } from "../../core/audit.js";
+import { normalizeRecord } from "../../core/normalize/Normalizer.js";
 
-export type IngestCliOptions = {
+export type IngestCliOptions = Readonly<{
   path: string;
   output?: string;
   json: boolean;
-};
+}>;
 
-export type IngestResult = {
+export type IngestResult = Readonly<{
   events: number;
   written: number;
   issues: number;
   output: string | null;
-};
+}>;
 
 async function assertReadable(path: string): Promise<void> {
   try {
@@ -36,7 +35,6 @@ export async function runIngest(
   await assertReadable(options.path);
 
   const registry = createDefaultRegistry();
-  const normalizer = new Normalizer(registry);
 
   let events = 0;
   let written = 0;
@@ -53,18 +51,18 @@ export async function runIngest(
   const generator = ingestJsonl(options.path);
   let next = await generator.next();
   while (!next.done) {
-    try {
-      const event = normalizer.normalize(next.value);
+    const normalized = normalizeRecord(registry, next.value);
+    if (normalized.ok) {
       events += 1;
       if (stream) {
-        const line = `${JSON.stringify(event)}\n`;
-        const ok = stream.write(line);
+        const line = `${JSON.stringify(normalized.value)}\n`;
+        const okWrite = stream.write(line);
         written += 1;
-        if (!ok && stream !== process.stdout) {
+        if (!okWrite && stream !== process.stdout) {
           await new Promise<void>((resolve) => stream!.once("drain", resolve));
         }
       }
-    } catch {
+    } else {
       issues += 1;
     }
     next = await generator.next();
