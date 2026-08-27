@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.0] - 2026-08-27
+
+### Added
+- `mqtt replay` — republish an IoTEvent JSONL capture to a broker (`--dry-run`, `--preserve-timing`, `--delay-ms`)
+- IoTEvent JSONL reader (`readIoTEventJsonl`) and MQTT replay codec
+- Fixture `fixtures/mqtt/events.jsonl` for replay/round-trip tests
+
+### Changed
+- `mqtt subscribe` framed as **record** (capture → IoTEvent JSONL)
+
 ## [0.1.2] - 2026-08-27
 
 ### Fixed

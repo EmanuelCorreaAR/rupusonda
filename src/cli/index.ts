@@ -5,6 +5,7 @@ import { EXIT_ERROR, toRupuSondaError } from "../core/errors.js";
 import { runInspect } from "./commands/inspect.js";
 import { runIngest } from "./commands/ingest.js";
 import { runMqttSubscribe } from "./commands/mqtt.js";
+import { runMqttReplay } from "./commands/mqtt-replay.js";
 import { renderBanner, renderInspectHuman } from "./terminal.js";
 import pc from "picocolors";
 
@@ -71,10 +72,10 @@ async function main(): Promise<void> {
 
   mqtt
     .command("subscribe")
-    .description("Subscribe to a broker and normalize messages to IoTEvent")
+    .description("Record: subscribe to a broker and write IoTEvent JSONL")
     .requiredOption("--url <url>", "MQTT broker URL (e.g. mqtt://localhost:1883)")
     .requiredOption("--topic <topic>", "Topic filter (e.g. sensors/#)")
-    .option("-o, --output <path>", "Append IoTEvent JSONL to file")
+    .option("-o, --output <path>", "Append IoTEvent JSONL to file (record)")
     .option("--max-messages <n>", "Stop after N messages", (v: string) => Number(v))
     .option("--timeout-ms <ms>", "Stop after timeout milliseconds", (v: string) => Number(v))
     .option("--json-events", "Print each IoTEvent as JSONL on stdout", false)
@@ -88,7 +89,7 @@ async function main(): Promise<void> {
         jsonEvents: boolean;
       }) => {
         renderBanner();
-        process.stderr.write(`\nSubscribing ${pc.bold(opts.topic)} @ ${opts.url}\n\n`);
+        process.stderr.write(`\nRecording ${pc.bold(opts.topic)} @ ${opts.url}\n\n`);
 
         const summary = await runMqttSubscribe(
           {
@@ -108,7 +109,74 @@ async function main(): Promise<void> {
           },
         );
 
-        process.stderr.write(`\nReceived ${summary.received} messages\n`);
+        process.stderr.write(`\nRecorded ${summary.received} messages`);
+        if (summary.output) {
+          process.stderr.write(` → ${pc.bold(summary.output)}`);
+        }
+        process.stderr.write("\n");
+      },
+    );
+
+  mqtt
+    .command("replay")
+    .description("Replay an IoTEvent JSONL capture back to an MQTT broker")
+    .argument("<path>", "IoTEvent JSONL capture (from subscribe/ingest)")
+    .requiredOption("--url <url>", "MQTT broker URL (e.g. mqtt://localhost:1883)")
+    .option("--delay-ms <ms>", "Fixed delay between publishes", (v: string) => Number(v))
+    .option("--preserve-timing", "Honor original inter-event timestamp deltas", false)
+    .option("--max-messages <n>", "Publish at most N events", (v: string) => Number(v))
+    .option("--dry-run", "Plan publishes without connecting", false)
+    .option("--json", "Emit deterministic JSON audit envelope", false)
+    .action(
+      async (
+        path: string,
+        opts: {
+          url: string;
+          delayMs?: number;
+          preserveTiming: boolean;
+          maxMessages?: number;
+          dryRun: boolean;
+          json: boolean;
+        },
+      ) => {
+        if (!opts.json) {
+          renderBanner();
+          process.stderr.write(
+            `\nReplaying ${pc.bold(path)} → ${opts.url}` +
+              (opts.dryRun ? " (dry-run)" : "") +
+              "\n\n",
+          );
+        }
+
+        const audit = await runMqttReplay(
+          {
+            path,
+            url: opts.url,
+            ...(opts.delayMs !== undefined ? { delayMs: opts.delayMs } : {}),
+            preserveTiming: opts.preserveTiming,
+            ...(opts.maxMessages !== undefined ? { maxMessages: opts.maxMessages } : {}),
+            dryRun: opts.dryRun,
+            json: opts.json,
+          },
+          (item) => {
+            if (!opts.json) {
+              process.stderr.write(
+                `${pc.dim(item.event.timestamp)} ${item.topic} → ${typeof item.payload === "string" ? item.payload : `<binary ${item.payload.length}B>`}\n`,
+              );
+            }
+          },
+        );
+
+        if (opts.json) {
+          process.stdout.write(`${JSON.stringify(audit, null, 2)}\n`);
+        } else {
+          process.stderr.write(
+            `\nPublished ${audit.result.published}` +
+              (audit.result.skipped ? `, skipped ${audit.result.skipped}` : "") +
+              (audit.result.issues ? `, issues ${audit.result.issues}` : "") +
+              "\n",
+          );
+        }
       },
     );
 

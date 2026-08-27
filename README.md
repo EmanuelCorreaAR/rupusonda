@@ -23,6 +23,7 @@ rupusonda --help
 rupusonda inspect fixtures/mqtt/simple.jsonl
 rupusonda inspect fixtures/mqtt/simple.jsonl --json
 rupusonda ingest fixtures/mqtt/simple.jsonl -o events.jsonl
+rupusonda mqtt replay fixtures/mqtt/events.jsonl --url mqtt://localhost:1883 --dry-run
 ```
 
 Exit **1** is reserved for usage/data errors. Exit **2** is reserved for policy/validation failure (gates land in later versions).
@@ -34,19 +35,31 @@ Exit **1** is reserved for usage/data errors. Exit **2** is reserved for policy/
 |---------|------|
 | `inspect capture.jsonl` | Summarize protocols, devices, topics, payloads |
 | `ingest capture.jsonl` | Normalize to canonical `IoTEvent` JSONL |
-| `mqtt subscribe` | Live MQTT capture → `IoTEvent` |
+| `mqtt subscribe` | **Record** live MQTT → `IoTEvent` JSONL |
+| `mqtt replay` | **Replay** an `IoTEvent` capture back to a broker |
 
 MQTT is the **first protocol adapter**, not the product. The core stays protocol-independent.
+
+
+## Record / replay
+
+Capture once, reproduce forever:
 
 ```bash
 rupusonda mqtt subscribe \
   --url mqtt://localhost:1883 \
   --topic 'sensors/#' \
   -o capture.jsonl
+
+rupusonda inspect capture.jsonl
+
+rupusonda mqtt replay capture.jsonl \
+  --url mqtt://localhost:1883
 ```
 
-Useful flags: `--max-messages`, `--timeout-ms`, `--json-events`.
+Useful replay flags: `--dry-run`, `--preserve-timing`, `--delay-ms`, `--max-messages`, `--json`.
 
+Subscription filters (`sensors/#`) belong to **capture**. Event topics (`sensors/temperature/device-01`) belong to the **stream**.
 
 ## Input format (JSONL)
 
@@ -100,7 +113,7 @@ rupusonda inspect fixtures/mqtt/simple.jsonl --json
 ```json
 {
   "tool": "rupusonda",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "family": "rupu",
   "command": "inspect",
   "input": {
@@ -115,7 +128,8 @@ rupusonda inspect fixtures/mqtt/simple.jsonl --json
     "unit": "iot_event",
     "ingest": "jsonl_stream_v1",
     "normalize": "protocol_adapter_v1",
-    "inspect": "dataset_summary_v1"
+    "inspect": "dataset_summary_v1",
+    "replay": "mqtt_replay_v1"
   },
   "result": {
     "events": 2,
@@ -179,7 +193,7 @@ npm run build
 
 ## Status
 
-**0.1.2** — concrete event topics in inspect; conservative MQTT inference; family-aligned CLI.
+**0.2.0** — record/replay (`mqtt subscribe` + `mqtt replay`); concrete event topics; conservative MQTT inference.
 
 **Next:** record/replay, schema inference, validation gates.
 
