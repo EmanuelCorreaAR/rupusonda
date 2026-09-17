@@ -198,6 +198,11 @@ npm run build
 **Next:** record/replay, schema inference, validation gates.
 
 
+## Apoyar el proyecto
+
+Si RupuSonda te sirve, podés invitarme un cafecito: [cafecito.app/emacorreadev](https://cafecito.app/emacorreadev)
+
+
 ## License
 
 Apache License 2.0
