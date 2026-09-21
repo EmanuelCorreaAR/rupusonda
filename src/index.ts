@@ -28,6 +28,17 @@ export {
   resolveModbusDeviceId,
   isModbusRegisterType,
 } from "./protocols/modbus/ModbusDecoder.js";
+export { coapAdapter, decodeCoapMessage } from "./protocols/coap/CoapAdapter.js";
+export type { CoapMessage, CoapMethod, CoapMessageType } from "./protocols/coap/CoapMessage.js";
+export {
+  decodeCoapPayload,
+  normalizeCoapPath,
+  parseCoapUri,
+  resolveCoapPath,
+  resolveCoapDeviceId,
+  isCoapMethod,
+  isCoapMessageType,
+} from "./protocols/coap/CoapDecoder.js";
 export { encodeMqttReplayPayload, requireReplayTopic } from "./protocols/mqtt/MqttReplayCodec.js";
 export { parseIoTEvent } from "./core/event/parseIoTEvent.js";
 export { readIoTEventJsonl, collectIoTEventJsonl } from "./core/event/readIoTEventJsonl.js";

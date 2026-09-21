@@ -1,0 +1,3 @@
+{"protocol":"coap","timestamp":"2026-08-27T14:00:00.000Z","method":"GET","path":"/sensors/temperature","code":"2.05","contentFormat":50,"payload":"{\"value\":23.4,\"unit\":\"C\"}","deviceId":"node-01"}
+{"protocol":"coap","timestamp":"2026-08-27T14:00:01.000Z","uri":"coap://valve-02/actuators/open","method":"PUT","messageType":"CON","payload":true,"metric":"open"}
+{"protocol":"coap","timestamp":"2026-08-27T14:00:02.000Z","path":"sensors/humidity","payload":55.2,"unit":"%","contentFormat":0}

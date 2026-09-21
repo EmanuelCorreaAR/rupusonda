@@ -38,7 +38,7 @@ Exit **1** is reserved for usage/data errors. Exit **2** is reserved for policy/
 | `mqtt subscribe` | **Record** live MQTT → `IoTEvent` JSONL |
 | `mqtt replay` | **Replay** an `IoTEvent` capture back to a broker |
 
-MQTT is the **first protocol adapter**, not the product. The core stays protocol-independent.
+MQTT is the **first protocol adapter**, not the product. The core stays protocol-independent. CoAP and Modbus follow the same adapter contract (JSONL ingest first; live I/O lands later).
 
 
 ## Record / replay
@@ -68,9 +68,10 @@ One line per raw protocol record. Streaming — the file is not loaded as one bl
 ```jsonl
 {"protocol":"mqtt","timestamp":"2026-08-27T14:00:00.000Z","topic":"sensors/temperature/device-01","payload":"{\"value\":23.4,\"unit\":\"C\"}"}
 {"protocol":"modbus","timestamp":"2026-08-27T14:00:00.000Z","slaveId":1,"registerType":"holding","address":40001,"value":235,"unit":"0.1C"}
+{"protocol":"coap","timestamp":"2026-08-27T14:00:00.000Z","method":"GET","path":"/sensors/temperature","code":"2.05","contentFormat":50,"payload":"{\"value\":23.4,\"unit\":\"C\"}","deviceId":"node-01"}
 ```
 
-MQTT uses `topic` + `payload`. Modbus uses `address` (or `register`) + `value`; `deviceId` / `slaveId` / `registerType` are optional.
+MQTT uses `topic` + `payload`. Modbus uses `address` (or `register`) + `value`; `deviceId` / `slaveId` / `registerType` are optional. CoAP uses `path` (or `coap(s)://` `uri`) + optional `payload`; `method` / `code` / `contentFormat` / `deviceId` are optional.
 
 
 ## Canonical model
@@ -193,9 +194,9 @@ npm run build
 
 ## Status
 
-**0.3.0** — Modbus adapter + record/replay; pure FP core; family-aligned CLI.
+**0.4.0** — CoAP + Modbus + MQTT adapters; record/replay; pure FP core; family-aligned CLI.
 
-**Next:** record/replay, schema inference, validation gates.
+**Next:** schema inference, validation gates, live CoAP/Modbus I/O.
 
 
 ## Apoyar el proyecto

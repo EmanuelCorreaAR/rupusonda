@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.0] - 2026-09-21
+
+### Added
+- CoAP protocol adapter (`decodeCoapMessage`, JSONL ingest via `protocol: "coap"`)
+- Path / `coap(s)://` URI resolution; optional method, code, contentFormat, messageType
+- Fixtures `fixtures/coap/simple.jsonl`, `fixtures/coap/mixed-protocol.jsonl`
+
+### Changed
+- `inspect` / `ingest` accept CoAP alongside MQTT and Modbus in the same capture
+
 ## [0.3.0] - 2026-08-27
 
 ### Added
