@@ -146,3 +146,6 @@ vite.config.ts.timestamp-*
 LOCAL.md
 *.local.md
 .local/
+
+# LinkedIn / outreach assets (local only — never commit)
+docs/linkedin/
