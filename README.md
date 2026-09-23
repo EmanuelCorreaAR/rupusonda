@@ -4,7 +4,7 @@
 
 Part of the **Rupu** family.
 
-Local CLI. Deterministic JSON reports. Stream IoT protocol captures into a canonical event model — inspect, normalize, compose. Technical signals — not a dashboard, not a device manager, not an LLM in the loop.
+Local CLI. Deterministic JSON reports. Stream IoT protocol captures into a canonical event model — inspect, normalize, schema, compose. Technical signals — not a dashboard, not a device manager, not an LLM in the loop.
 
 
 ## Install
@@ -21,7 +21,8 @@ rupusonda --help
 
 ```bash
 rupusonda inspect fixtures/mqtt/simple.jsonl
-rupusonda inspect fixtures/mqtt/simple.jsonl --json
+rupusonda schema fixtures/mqtt/simple.jsonl
+rupusonda schema fixtures/mqtt/simple.jsonl --json
 rupusonda ingest fixtures/mqtt/simple.jsonl -o events.jsonl
 rupusonda mqtt replay fixtures/mqtt/events.jsonl --url mqtt://localhost:1883 --dry-run
 ```
@@ -34,6 +35,7 @@ Exit **1** is reserved for usage/data errors. Exit **2** is reserved for policy/
 | Command | Role |
 |---------|------|
 | `inspect capture.jsonl` | Summarize protocols, devices, topics, payloads |
+| `schema capture.jsonl` | Infer evidence-based schema (types, presence, ranges) |
 | `ingest capture.jsonl` | Normalize to canonical `IoTEvent` JSONL |
 | `mqtt subscribe` | **Record** live MQTT → `IoTEvent` JSONL |
 | `mqtt replay` | **Replay** an `IoTEvent` capture back to a broker |
@@ -60,6 +62,22 @@ rupusonda mqtt replay capture.jsonl \
 Useful replay flags: `--dry-run`, `--preserve-timing`, `--delay-ms`, `--max-messages`, `--json`.
 
 Subscription filters (`sensors/#`) belong to **capture**. Event topics (`sensors/temperature/device-01`) belong to the **stream**.
+
+
+## Schema inference
+
+Evidence only — no LLM, no invented topic wildcards. Groups by **concrete** event topics and observes field shapes after normalize:
+
+```bash
+rupusonda schema fixtures/mqtt/simple.jsonl
+rupusonda schema fixtures/mqtt/simple.jsonl -o schema.json
+rupusonda schema fixtures/mqtt/simple.jsonl --json
+```
+
+For each topic you get field types, presence (`observed`), numeric `min`/`max`, and low-cardinality string `values`. Dataset `coverage` is the fraction of type observations that match each field's dominant type (a pure ratio, not a model score).
+
+`-o` writes the schema `result` JSON (portable artifact for upcoming validation gates). `--json` emits the full audit envelope.
+
 
 ## Input format (JSONL)
 
@@ -130,6 +148,7 @@ rupusonda inspect fixtures/mqtt/simple.jsonl --json
     "ingest": "jsonl_stream_v1",
     "normalize": "protocol_adapter_v1",
     "inspect": "dataset_summary_v1",
+    "schema": "schema_inference_v1",
     "replay": "mqtt_replay_v1"
   },
   "result": {
@@ -194,9 +213,9 @@ npm run build
 
 ## Status
 
-**0.4.0** — CoAP + Modbus + MQTT adapters; record/replay; pure FP core; family-aligned CLI.
+**0.5.0** — Schema inference (`schema` / `schema_inference_v1`); CoAP + Modbus + MQTT adapters; record/replay; pure FP core.
 
-**Next:** schema inference, validation gates, live CoAP/Modbus I/O.
+**Next:** validation gates (`validate` + exit 2), schema/capture diff.
 
 
 ## Apoyar el proyecto

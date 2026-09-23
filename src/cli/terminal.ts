@@ -1,5 +1,6 @@
 import pc from "picocolors";
 import type { InspectResult } from "../core/inspect/Inspector.js";
+import type { FieldSchema, SchemaResult } from "../core/schema/inferSchema.js";
 import { TAGLINE, TOOL, VERSION } from "../brand.js";
 
 function fmt(n: number): string {
@@ -80,6 +81,45 @@ export function renderInspectHuman(path: string, result: InspectResult): void {
       continue;
     }
     out.write(`  ${kind.padEnd(12)} ${pct(count, total).padStart(6)}  (${fmt(count)})\n`);
+  }
+  out.write("\n");
+}
+
+function formatFieldLine(name: string, field: FieldSchema): string {
+  const observedPct = `${(field.observed * 100).toFixed(1)}%`;
+  const parts = [`type: ${field.type}`, `observed: ${observedPct}`];
+  if (field.min !== undefined && field.max !== undefined) {
+    parts.push(`range: ${field.min}..${field.max}`);
+  }
+  if (field.values !== undefined && field.values.length > 0) {
+    parts.push(`values: ${JSON.stringify(field.values)}`);
+  }
+  if (field.valuesTruncated) {
+    parts.push("values: (truncated)");
+  }
+  return `  ${name}\n    ${parts.join("\n    ")}`;
+}
+
+export function renderSchemaHuman(path: string, result: SchemaResult): void {
+  const out = process.stderr;
+  renderHeader(out);
+  out.write(`\nDetected schema: ${pc.bold(path)}\n`);
+
+  section("Dataset", out);
+  kv("Events", fmt(result.events), out);
+  kv("Protocols", String(Object.keys(result.protocols).length), out);
+  kv("Topics", fmt(Object.keys(result.topics).length), out);
+  kv("Coverage", result.coverage.toFixed(3), out);
+  if (result.issues > 0) {
+    kv("Issues", pc.yellow(fmt(result.issues)), out);
+  }
+
+  for (const [topic, schema] of Object.entries(result.topics)) {
+    section(topic, out);
+    out.write(`  ${pc.dim(`${fmt(schema.events)} events`)}\n`);
+    for (const [fieldName, field] of Object.entries(schema.fields)) {
+      out.write(`${formatFieldLine(fieldName, field)}\n`);
+    }
   }
   out.write("\n");
 }

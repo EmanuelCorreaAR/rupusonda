@@ -44,6 +44,13 @@ export { parseIoTEvent } from "./core/event/parseIoTEvent.js";
 export { readIoTEventJsonl, collectIoTEventJsonl } from "./core/event/readIoTEventJsonl.js";
 export { inspectEvents } from "./core/inspect/Inspector.js";
 export type { InspectResult } from "./core/inspect/Inspector.js";
+export { inferSchema, classifyValue } from "./core/schema/inferSchema.js";
+export type {
+  SchemaResult,
+  TopicSchema,
+  FieldSchema,
+  ObservedType,
+} from "./core/schema/inferSchema.js";
 export { normalizeRecord } from "./core/normalize/Normalizer.js";
 export { ingestJsonl, collectJsonl } from "./core/ingest/Ingestor.js";
 export { createDefaultRegistry } from "./core/createRegistry.js";

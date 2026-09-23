@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0] - 2026-09-23
+
+### Added
+- `schema` — evidence-based schema inference from JSONL captures (concrete topics only)
+- Pure `inferSchema` fold: field types, presence (`observed`), numeric ranges, string enums
+- Dataset `coverage` = fraction of type observations matching each field's dominant type
+- `-o` writes a portable schema result JSON for future validation gates
+- Method tag `schema_inference_v1` in the audit envelope
+
+### Changed
+- README status / next steps: schema landed; validation gates next
+
 ## [0.4.0] - 2026-09-21
 
 ### Added

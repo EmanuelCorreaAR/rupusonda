@@ -4,9 +4,10 @@ import { TOOL, VERSION } from "../brand.js";
 import { EXIT_ERROR, toRupuSondaError } from "../core/errors.js";
 import { runInspect } from "./commands/inspect.js";
 import { runIngest } from "./commands/ingest.js";
+import { runSchema } from "./commands/schema.js";
 import { runMqttSubscribe } from "./commands/mqtt.js";
 import { runMqttReplay } from "./commands/mqtt-replay.js";
-import { renderBanner, renderInspectHuman } from "./terminal.js";
+import { renderBanner, renderInspectHuman, renderSchemaHuman } from "./terminal.js";
 import pc from "picocolors";
 
 async function main(): Promise<void> {
@@ -21,6 +22,7 @@ async function main(): Promise<void> {
         "See also:",
         "  rupusonda inspect --help",
         "  rupusonda ingest --help",
+        "  rupusonda schema --help",
         "  rupusonda mqtt --help",
       ].join("\n"),
     )
@@ -63,6 +65,28 @@ async function main(): Promise<void> {
             (audit.result.issues ? ` (${audit.result.issues} issues)` : "") +
             "\n",
         );
+      }
+    });
+
+  program
+    .command("schema")
+    .description("Infer an evidence-based schema from a JSONL capture (concrete topics)")
+    .argument("<path>", "JSONL input file")
+    .option("-o, --output <path>", "Write schema result JSON to file")
+    .option("--json", "Emit deterministic JSON audit envelope", false)
+    .action(async (path: string, opts: { output?: string; json: boolean }) => {
+      const audit = await runSchema({
+        path,
+        json: opts.json,
+        ...(opts.output !== undefined ? { output: opts.output } : {}),
+      });
+      if (opts.json) {
+        process.stdout.write(`${JSON.stringify(audit, null, 2)}\n`);
+      } else {
+        renderSchemaHuman(path, audit.result);
+        if (opts.output) {
+          process.stderr.write(`Wrote schema to ${pc.bold(opts.output)}\n`);
+        }
       }
     });
 
